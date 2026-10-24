@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미리봄 개인정보처리방침</title>
+<style>
+  :root { --fg:#1d1d1f; --muted:#6e6e73; --bg:#ffffff; --line:#e5e5ea; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#f5f5f7; --muted:#a1a1a6; --bg:#111113; --line:#2c2c2e; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.7 -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:40px 16px 80px; }
+  h1 { font-size:28px; margin:0 0 4px; } h2 { font-size:19px; margin:32px 0 8px; } h3 { font-size:16px; margin:20px 0 6px; }
+  p, li { color:var(--fg); } .muted { color:var(--muted); font-size:14px; }
+  hr { border:0; border-top:1px solid var(--line); margin:48px 0; }
+  table { border-collapse:collapse; width:100%; font-size:15px; } td, th { border:1px solid var(--line); padding:8px; text-align:left; vertical-align:top; }
+</style>
+</head>
+<body>
+<main>
+<h1>미리봄 개인정보처리방침</h1>
+<p class="muted">시행일: 2026년 10월 25일 · 운영: 미리봄 팀(포지리들)</p>
+
+<p>미리봄은 부산에서 갑자기 사람이 몰릴 장소를 미리 알려 혼잡과 안전사고를 줄이기 위한 학생 팀 프로젝트입니다. 이 방침은 미리봄이 Threads API로 받는 정보를 어떻게 다루는지 설명합니다.</p>
+
+<h2>1. 처리하는 정보</h2>
+<table>
+<tr><th>정보</th><th>받는 방법</th><th>쓰는 목적</th></tr>
+<tr><td>Threads 공개 게시글의 본문, 작성 시각</td><td>Threads 키워드 검색 API (부산 장소 이름으로 검색)</td><td>글이 어느 장소 이야기인지, 실제로 방문하려는 글인지 자동 분류해서 장소별 하루 글 수를 셈</td></tr>
+<tr><td>미리봄 팀 계정의 Threads 토큰</td><td>Threads 로그인 (팀원 본인 계정만)</td><td>키워드 검색 API 호출</td></tr>
+</table>
+<p>작성자 아이디, 프로필, 사진, 위치 정보는 저장하지 않습니다. 미리봄은 일반 이용자에게 Threads 로그인을 요구하지 않습니다.</p>
+
+<h2>2. 보관 기간과 삭제</h2>
+<ul>
+<li>게시글 본문은 분류가 끝나는 즉시 삭제하고, 시스템 로그·백업·캐시에도 남기지 않습니다.</li>
+<li>남는 정보는 "날짜, 장소, 방문 의도 글 수" 같은 통계뿐이며, 특정 개인을 알아볼 수 없습니다.</li>
+<li>분류 모델 학습을 위해 일부 게시글을 표본으로 쓸 경우, 작성자 정보·링크·멘션을 지운 상태로 팀 내부에서만 보관하고 학습이 끝나면 폐기합니다.</li>
+</ul>
+
+<h2>3. 제3자 제공과 이용 제한</h2>
+<ul>
+<li>게시글 원문과 개인 정보를 다른 기관이나 회사에 제공하거나 판매하지 않습니다.</li>
+<li>외부 AI 서비스로 글을 보내지 않고, 팀 서버에서 직접 분류합니다.</li>
+<li>개인을 감시하거나 추적하는 데 쓰지 않으며, 법 집행 목적으로 쓰지 않습니다. 결과는 장소별 혼잡 예측 통계로만 쓰입니다.</li>
+</ul>
+
+<h2>4. 삭제 요청과 문의</h2>
+<p>미리봄이 내 게시글을 처리했는지 확인하거나 삭제를 원하면 아래 연락처로 알려 주세요. 원문은 이미 즉시 삭제되므로 남아 있는 개인 데이터가 없음을 확인해 드리고, 학습 표본에 포함된 경우 바로 지웁니다. Threads 설정에서 미리봄 앱 연결을 끊어도 같은 처리를 합니다.</p>
+<p>연락처: <a href="mailto:TEAM_EMAIL">TEAM_EMAIL</a></p>
+
+<h2>5. 방침 변경</h2>
+<p>이 방침이 바뀌면 이 페이지에 시행일과 함께 알립니다.</p>
+
+<hr>
+
+<h1>Miribom Privacy Policy</h1>
+<p class="muted">Effective: October 25, 2026 · Operated by the Miribom student team (Pojirideul), Busan, Korea</p>
+<p>Miribom is a student project that forecasts crowd surges at places in Busan so that crowding and safety incidents can be prevented. This policy explains how Miribom handles data received through the Threads API.</p>
+<h3>Data we process</h3>
+<ul>
+<li>Text and timestamps of public Threads posts returned by the keyword search API for Busan place names. Used only to classify which place a post mentions and whether it expresses an intention to visit, so we can count posts per place per day.</li>
+<li>The Threads access token of our own team account, used to call the keyword search API.</li>
+</ul>
+<p>We do not store author usernames, profiles, images, or location data. End users are never asked to log in with Threads.</p>
+<h3>Retention and deletion</h3>
+<ul>
+<li>Post text is deleted immediately after classification and is not kept in logs, backups, or caches.</li>
+<li>We keep only aggregate counts (date, place, number of visit-intent posts), which cannot identify any person.</li>
+<li>If a small sample of posts is used to train the classifier, usernames, links, and mentions are removed first, the sample stays within the team, and it is deleted when training ends.</li>
+</ul>
+<h3>Sharing and restrictions</h3>
+<ul>
+<li>We do not sell or share post content or personal data with any third party.</li>
+<li>Posts are classified on our own server and are never sent to external AI services.</li>
+<li>Data is not used to monitor or track individuals, and is not used for law enforcement. Output is limited to aggregate crowd forecasts per place.</li>
+</ul>
+<h3>Deletion requests and contact</h3>
+<p>To ask whether your posts were processed or to request deletion, contact <a href="mailto:TEAM_EMAIL">TEAM_EMAIL</a>. Removing the Miribom app in your Threads settings triggers the same deletion.</p>
+</main>
+</body>
+</html>
