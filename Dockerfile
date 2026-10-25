@@ -14,7 +14,8 @@ ARG INSTALL_INTENT=false
 COPY miribom-ai /opt/miribom-ai
 RUN if [ "$INSTALL_INTENT" = "true" ]; then pip install --no-cache-dir -e "/opt/miribom-ai[intent]"; \
     else pip install --no-cache-dir -e /opt/miribom-ai; fi
-ENV MIRIBOM_HOME=/opt/miribom-ai
+# MIRIBOM_HOME은 서버 작업 폴더 (DB 장소·별칭으로 places.csv를 새로 씀). models/·data/는 /opt/miribom-ai 것을 연결
+ENV MIRIBOM_AI_DIR=/opt/miribom-ai MIRIBOM_HOME=/srv/runtime
 
 COPY miribom-backend/app app
 EXPOSE 8000

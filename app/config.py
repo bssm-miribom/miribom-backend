@@ -16,7 +16,17 @@ class Settings(BaseSettings):
     # true면 네이버 키·학습 모델 없이 가짜 데이터로 판정 (개발용)
     miribom_demo: bool = True
 
-    # 수동 실행 API(/api/admin/run) 보호용
+    # miribom-ai 레포 위치 (모델·자료). 서버는 MIRIBOM_HOME(작업 폴더)에 places.csv를 새로 쓰고 models/data는 여기로 연결함
+    miribom_ai_dir: str = "/opt/miribom-ai"
+    miribom_home: str = "/srv/runtime"
+
+    # 로그인 토큰
+    jwt_secret: str = "dev-only-change-me"
+    jwt_hours: int = 12
+    # 시연용 계정 비밀번호 (처음 실행 때 계정 생성)
+    seed_password: str = "miribom1234"
+
+    # 수동 실행 API를 로그인 없이 부를 때 쓰는 토큰 (비우면 꺼짐)
     admin_token: str = ""
 
     # Threads 앱 시크릿 (연결 해제·삭제 콜백 서명 확인)
