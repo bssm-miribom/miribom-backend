@@ -88,7 +88,8 @@ def aliases_after(s: Session, row: DailyResult) -> dict[str, list[str]]:
 
 
 # ===== 관리자 =====
-def dashboard(s: Session, row: DailyResult, acc: Account) -> dict:
+def _rows(s: Session, row: DailyResult, acc: Account) -> list[dict]:
+    """계정 관할 안의 급상승 후보 행 (normal 제외). 단계 높은 순 → 급증 배수 높은 순"""
     now = by_name(row.payload)
     prev_row = s.scalars(select(DailyResult).where(DailyResult.replay == row.replay, DailyResult.demo == row.demo,
                                                     DailyResult.judge_day == row.judge_day - timedelta(days=1))
@@ -104,8 +105,27 @@ def dashboard(s: Session, row: DailyResult, acc: Account) -> dict:
             x["is_new"] = x["new_alias"] is not None
     rows = [x for x in rows if x["stage"] != "normal"]
     rows.sort(key=lambda x: (ORDER[x["stage"]], -(x["surge_ratio"] or 0)))
+    return rows
+
+
+def dashboard(s: Session, row: DailyResult, acc: Account) -> dict:
+    rows = _rows(s, row, acc)
     summary = {k: sum(x["stage"] == k for x in rows) for k in ("stage3", "stage2", "stage1", "pending")}
     return {"meta": meta(row), "summary": summary, "places": rows}
+
+
+RISING = ("stage3", "stage2")   # A2 급상승 장소 목록에 띄우는 단계
+STAGE_LABEL = {"stage3": "3단계 대응 필요", "stage2": "2단계 사전 대비"}
+
+
+def rising(s: Session, row: DailyResult, acc: Account, stage: str | None = None) -> dict:
+    """A-03 급상승 장소 목록: 3단계·2단계만. stage를 주면 그 단계만 (요약 줄 단계 누름 필터)"""
+    rows = [x for x in _rows(s, row, acc) if x["stage"] in RISING]
+    summary = {k: sum(x["stage"] == k for x in rows) for k in RISING}
+    if stage:
+        rows = [x for x in rows if x["stage"] == stage]
+    return {"meta": meta(row), "summary": summary,
+            "places": [{**x, "stage_label": STAGE_LABEL[x["stage"]]} for x in rows]}
 
 
 def place_detail(s: Session, row: DailyResult, place: Place) -> dict:

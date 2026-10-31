@@ -1,5 +1,6 @@
 """관리자 화면 API (A2 대시보드, A3 장소 상세, A4 재현, 별칭, 공지)"""
 from datetime import date, datetime, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
@@ -30,6 +31,16 @@ def dashboard(judge_day: date | None = None, replay: bool = False,
     if replay and acc.org_type != "city":
         raise HTTPException(403, "과거 사례 재현은 부산시 계정만 볼 수 있음")
     return views.dashboard(s, _result_or_404(s, judge_day, replay), acc)
+
+
+@router.get("/dashboard/rising")
+def dashboard_rising(judge_day: date | None = None, replay: bool = False,
+                     stage: Literal["stage3", "stage2"] | None = None,
+                     acc: Account = Depends(current_account), s: Session = Depends(get_session)):
+    """A-03 급상승 장소 목록. 3단계·2단계만 (1단계·판정 보류·수집 실패는 빠짐)"""
+    if replay and acc.org_type != "city":
+        raise HTTPException(403, "과거 사례 재현은 부산시 계정만 볼 수 있음")
+    return views.rising(s, _result_or_404(s, judge_day, replay), acc, stage)
 
 
 @router.get("/places")

@@ -89,6 +89,25 @@
 - `is_new`: 전날 판정에서 평상이었다가 이번에 올라온 장소, 또는 판정 뒤 새 별칭이 등록된 장소
 - 별칭을 막 등록한 평상 장소는 `stage1`, `reason: "신규 별칭 '부캉이' 등록 · 다음 판정부터 반영"`으로 바로 나옴 (A-06)
 
+### GET `/admin/dashboard/rising?judge_day=&replay=&stage=`
+A-03 급상승 장소 목록 (A2 오른쪽 표). **3단계·2단계만** 나옴. 1단계·판정 보류·수집 실패는 빠짐 (지도·요약 줄은 `/admin/dashboard` 사용)
+- `judge_day`·`replay`: `/admin/dashboard`와 같음
+- `stage`: `stage3` 또는 `stage2`를 주면 그 단계만 (요약 줄 단계 누름 필터). 비우면 둘 다
+```json
+{"meta": {JudgeMeta},
+ "summary": {"stage3": 1, "stage2": 1},
+ "places": [
+   {"id": "bukhang", "name": "북항친수공원", "district": "동구", "lat": 35.115, "lon": 129.045,
+    "stage": "stage3", "stage_label": "3단계 대응 필요", "surge_ratio": 14.2, "intent_posts": null,
+    "d1": {Forecast}, "bottleneck_name": "해상육교 진입로",
+    "is_new": true, "new_alias": "부캉이", "reason": "2026-09-21 예측 중앙값 밀집도 5.9명/㎡ > 5"}
+ ]}
+```
+- 표 칸 대응: 장소 `name` / 단계 `stage_label` / 급증 배수 `surge_ratio` / 방문 의도 글 `intent_posts` / D+1 예상 방문객 `d1.mid`(`d1.low`~`d1.high`) / 예상 병목 밀집도 `d1.density_mid`
+- 정렬: 단계 높은 순 → 급증 배수 높은 순. `summary`는 `stage` 필터와 상관없이 3·2단계 전체 수
+- 계정 관할 밖 장소는 빠짐. 해당 장소가 없으면 `places: []` → 화면 "오늘 급상승 장소 없음"
+- 판정 결과가 아예 없으면 404 (`/admin/dashboard`와 같음)
+
 ### GET `/admin/places/{id}?judge_day=&replay=`
 A3 장소 상세
 ```json
@@ -165,6 +184,13 @@ A3 장소 상세
 | POST | `/threads/delete` | 데이터 삭제 요청 → `{"url", "confirmation_code"}` |
 | GET | `/threads/delete/{code}` | 삭제 요청 상태 |
 | GET | `/privacy` (prefix 없음) | 개인정보처리방침 |
+| GET | `/threads/start` (prefix 없음) | Threads 연결 안내 화면 (Meta 심사 녹화용) |
+| GET | `/threads/login` (prefix 없음) | Threads 동의 화면으로 보냄 (threads_basic, threads_keyword_search) |
+| GET | `/threads/callback` (prefix 없음) | 코드 → 토큰 교환, 토큰은 Redis에 1시간만 둠. Meta에 등록할 콜백 주소 |
+| GET | `/threads/demo` (prefix 없음) | 장소별 키워드 검색 결과와 가볼래 글 수 (지금은 키워드 규칙) |
+| GET | `/threads/logout` (prefix 없음) | 연결 끊기 |
+
+- 환경변수: `THREADS_APP_ID`, `THREADS_APP_SECRET`(Threads 앱 것, 페이스북 앱 것과 다름), `PUBLIC_BASE_URL`(https 주소)
 
 ## 7. 시연용 계정 (개발 DB에 자동 생성) [팀 확인]
 | 아이디 | 기관 | 범위 |
