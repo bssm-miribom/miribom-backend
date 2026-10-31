@@ -17,13 +17,17 @@ KST = ZoneInfo("Asia/Seoul")
 scheduler = BackgroundScheduler(timezone=KST)
 
 
+class JobBusy(RuntimeError):
+    """06시 작업이나 다른 수동 실행이 이미 돌고 있음"""
+
+
 def run_daily_job(judge_day: date | None = None, demo: bool | None = None, replay: bool = False) -> DailyResult:
     import miribom_ai  # pandas·lightgbm이 무거워서 쓸 때 불러옴
 
     demo = settings.miribom_demo if demo is None else demo
     # 같은 작업이 겹쳐 돌지 않게 Redis 잠금 (최대 30분)
     if not r.set(LOCK_KEY, "1", nx=True, ex=1800):
-        raise RuntimeError("판정 작업이 이미 실행 중임")
+        raise JobBusy("판정 작업이 이미 실행 중임. 잠시 뒤 다시 시도할 것")
     try:
         with SessionLocal() as s:
             # 재현은 판정일 07시 전에 등록된 별칭만 씀

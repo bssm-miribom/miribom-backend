@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 from app import views
 from app.auth import can_see, city_account, city_or_token, current_account
 from app.db import Account, Alias, DailyResult, Notice, Place, get_session
-from app.jobs import KST, run_daily_job
+from app.config import settings
+from app.jobs import KST, JobBusy, run_daily_job
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -70,7 +71,10 @@ class AliasIn(BaseModel):
 
 
 def _alias_out(a: Alias) -> dict:
-    applies = (a.created_at.astimezone(KST) + timedelta(days=1)).date()
+    # 판정 작업 때마다 별칭을 새로 읽으므로, 등록 뒤 처음 돌아오는 매일 판정(기본 06시)부터 반영됨
+    t = a.created_at.astimezone(KST)
+    run_at = t.replace(hour=settings.daily_hour, minute=settings.daily_minute, second=0, microsecond=0)
+    applies = (t if t < run_at else t + timedelta(days=1)).date()
     return {"id": a.id, "alias": a.alias, "place_id": a.place_id, "created_at": a.created_at.isoformat(),
             "applies_from": str(applies)}
 
@@ -113,6 +117,8 @@ class ReplayIn(BaseModel):
 async def _run(**kw):
     try:
         return await run_in_threadpool(run_daily_job, **kw)
+    except JobBusy as e:
+        raise HTTPException(409, str(e))
     except Exception as e:
         raise HTTPException(500, f"{type(e).__name__}: {e}")
 

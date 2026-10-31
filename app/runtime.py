@@ -18,7 +18,7 @@ FIELDS = ["place", "keywords", "lat", "lon", "base_rest", "base_work", "bottlene
 def prepare():
     os.environ["MIRIBOM_HOME"] = str(HOME)   # miribom_ai를 불러오기 전에 정해야 함
     HOME.mkdir(parents=True, exist_ok=True)
-    for name in ("models", "data"):
+    for name in ("models", "data", "results"):   # results/: 가짜 데이터 모델 학습 때 평가표를 씀
         link, target = HOME / name, Path(settings.miribom_ai_dir) / name
         if not link.exists() and not link.is_symlink():
             link.symlink_to(target, target_is_directory=True)
