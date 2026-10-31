@@ -12,7 +12,9 @@ RUN pip install --no-cache-dir -r miribom-backend/requirements.txt
 # 모델 패키지. INSTALL_INTENT=true면 torch·transformers까지 (이미지 커짐)
 ARG INSTALL_INTENT=false
 COPY miribom-ai /opt/miribom-ai
-RUN if [ "$INSTALL_INTENT" = "true" ]; then pip install --no-cache-dir -e "/opt/miribom-ai[intent]"; \
+# torch는 CPU 전용판을 먼저 깔아서 GPU용(수 GB)이 안 깔리게 함
+RUN if [ "$INSTALL_INTENT" = "true" ]; then pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
+      && pip install --no-cache-dir -e "/opt/miribom-ai[intent]"; \
     else pip install --no-cache-dir -e /opt/miribom-ai; fi
 # MIRIBOM_HOME은 서버 작업 폴더 (DB 장소·별칭으로 places.csv를 새로 씀). models/·data/는 /opt/miribom-ai 것을 연결
 ENV MIRIBOM_AI_DIR=/opt/miribom-ai MIRIBOM_HOME=/srv/runtime

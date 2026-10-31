@@ -10,7 +10,7 @@ from app import runtime
 from app.config import settings
 from app.db import init_db
 from app.jobs import start_scheduler, stop_scheduler
-from app.routers import admin, auth, health, public, threads
+from app.routers import admin, auth, health, public, threads, threads_demo
 from app.seed import seed
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -32,6 +32,9 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_list, allow_crede
 
 for r in (health, auth, admin, public, threads):
     app.include_router(r.router, prefix="/api")
+
+# Threads 로그인·검색 화면 (Meta 심사 녹화용). 콜백 주소가 /threads/callback이라 /api를 붙이지 않음
+app.include_router(threads_demo.router)
 
 STATIC = Path(__file__).parent / "static"
 

@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     # 수동 실행 API를 로그인 없이 부를 때 쓰는 토큰 (비우면 꺼짐)
     admin_token: str = ""
 
-    # Threads 앱 시크릿 (연결 해제·삭제 콜백 서명 확인)
+    # Threads 앱 ID·시크릿 (로그인, 연결 해제·삭제 콜백 서명 확인). 대시보드의 Threads 앱 ID를 씀 (페이스북 앱 ID와 다름)
+    threads_app_id: str = ""
     threads_app_secret: str = ""
     public_base_url: str = "http://localhost:8000"
 
