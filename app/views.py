@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.cache import LATEST_KEY, r
+from app.config import settings
 from app.db import Account, Alias, DailyResult, Place
 from app.jobs import KST
 
@@ -41,9 +42,12 @@ def results_between(s: Session, row: DailyResult, days: int) -> list[DailyResult
 
 
 def meta(row: DailyResult) -> dict:
-    today = datetime.now(KST).date()
+    now = datetime.now(KST)
+    # 오늘 판정은 06시에 돌고 몇십 초~몇 분 걸리므로, 07시가 지났는데도 오늘 결과가 없을 때만 '지연'으로 봄
+    due = now.replace(hour=settings.daily_hour, minute=settings.daily_minute, second=0, microsecond=0) + timedelta(hours=1)
+    expected = now.date() if now >= due else now.date() - timedelta(days=1)
     return {"judge_day": str(row.judge_day), "generated_at": row.payload.get("생성 시각"), "demo": row.demo,
-            "replay": row.replay, "stale": (not row.replay and not row.demo and row.judge_day < today)}
+            "replay": row.replay, "stale": (not row.replay and not row.demo and row.judge_day < expected)}
 
 
 def by_name(payload: dict) -> dict[str, dict]:
