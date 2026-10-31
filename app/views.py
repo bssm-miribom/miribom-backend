@@ -57,7 +57,8 @@ def forecasts(p: dict) -> list[dict]:
     for h, v in sorted((p.get("예측") or {}).items(), key=lambda kv: int(kv[0])):
         d = dens.get(v["날짜"]) or {}
         out.append({"horizon": int(h), "date": v["날짜"], "low": v["하위10"], "mid": v["중앙값"], "high": v["상위90"],
-                    "density_mid": d.get("중앙값"), "density_high": d.get("상위90")})
+                    "density_mid": d.get("중앙값"), "density_high": d.get("상위90"),
+                    "worst": v.get("최악"), "density_worst": d.get("최악")})
     return out
 
 
@@ -74,7 +75,8 @@ def place_row(place: Place, p: dict | None, prev: dict | None, new_aliases: list
             "stage": stage, "surge_ratio": ((p or {}).get("급증") or {}).get("오늘 배수"), "intent_posts": None,
             "d1": fc[0] if fc else None, "bottleneck_name": place.bottleneck_name,
             "is_new": bool(new_aliases) or (stage != "normal" and stage_of(prev) == "normal"),
-            "new_alias": new_aliases[0] if new_aliases else None, "reason": reason}
+            "new_alias": new_aliases[0] if new_aliases else None, "reason": reason,
+            "worst_case": (p or {}).get("최악 시나리오")}
 
 
 def aliases_after(s: Session, row: DailyResult) -> dict[str, list[str]]:
@@ -141,7 +143,7 @@ def place_detail(s: Session, row: DailyResult, place: Place) -> dict:
     return {"meta": meta(row),
             "place": {"id": place.id, "name": place.name, "district": place.district,
                       "aliases": [a.alias for a in s.scalars(select(Alias).where(Alias.place_id == place.id))]},
-            "stage": base["stage"], "reason": base["reason"],
+            "stage": base["stage"], "reason": base["reason"], "worst_case": base["worst_case"],
             "surge": {"ratio": surge.get("오늘 배수"), "top1pct": surge.get("상위 기준"),
                       "year_max": surge.get("1년 최대"), "reason": surge.get("이유")},
             "trend": trend, "actual_visitors": [], "forecasts": forecasts(p or {}),

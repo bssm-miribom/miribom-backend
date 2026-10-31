@@ -30,10 +30,12 @@
 ### 예측 한 칸 `Forecast`
 ```json
 {"horizon": 1, "date": "2026-09-21", "low": 42000, "mid": 65000, "high": 98000,
- "density_mid": 5.9, "density_high": 8.9}
+ "density_mid": 5.9, "density_high": 8.9, "worst": 190000, "density_worst": 14.3}
 ```
 - `low`·`mid`·`high` = 하루 방문객 하위 10% · 중앙값 · 상위 90%
 - `density_*` = 병목 밀집도(명/㎡). 판정 보류 장소는 `null`
+- `worst`·`density_worst` = **최악 시나리오** (참고용): 검색이 평소의 N배면 방문도 N배라고 가정한 값. 실측(도시철도 하차)과 맞지 않는 가정이라 경보 단계에는 안 씀. 급증이 아닌 장소·예전 판정 결과는 `null`
+- 화면 문구 예: "최악 시나리오(검색 증가만큼 방문 증가 가정) 19만 명"
 
 ### 판정 메타 `JudgeMeta` (대시보드·시민 화면 공통 헤더)
 ```json
@@ -81,9 +83,11 @@
    {"id": "bukhang", "name": "북항친수공원", "district": "동구", "lat": 35.115, "lon": 129.045,
     "stage": "stage3", "surge_ratio": 14.2, "intent_posts": 312,
     "d1": {Forecast}, "bottleneck_name": "해상육교 진입로",
-    "is_new": true, "new_alias": "부캉이", "reason": "2026-09-21 예측 중앙값 밀집도 5.9명/㎡ > 5"}
+    "is_new": true, "new_alias": "부캉이", "reason": "2026-09-21 예측 중앙값 밀집도 5.9명/㎡ > 5",
+    "worst_case": "검색이 늘어난 만큼 방문도 늘면 2026-09-24 밀집도 14.3명/㎡ (실측으로 확인 안 된 가정)"}
  ]}
 ```
+- `worst_case`: 최악 시나리오 밀집도가 1㎡당 5명을 넘을 때만 문장, 아니면 `null`. 단계와 별개로 "주의" 표시용
 - `places`는 `normal` 빼고 단계 높은 순 → 급증 배수 높은 순 (A-03 기본 정렬)
 - `intent_posts`: 방문 의도 분류 전이라 지금은 `null` (Threads 승인 후)
 - `is_new`: 전날 판정에서 평상이었다가 이번에 올라온 장소, 또는 판정 뒤 새 별칭이 등록된 장소
@@ -133,7 +137,6 @@ A3 장소 상세
 요청 `{"alias": "부캉이", "place_id": "bukhang"}`
 응답 201 `{"id": 1, "alias": "부캉이", "place_id": "bukhang", "created_at": "…", "applies_from": "2026-09-21"}`
 - 이미 쓰는 별칭(장소 이름 포함) 409 `"이미 등록된 별칭"`
-- `applies_from`: 등록 뒤 처음 돌아오는 매일 판정(06시) 날짜. 06시 전에 등록하면 그날, 지나면 다음 날
 - 등록한 별칭은 다음 판정부터 검색어에 들어감. 재현할 때는 그 판정일 07시 전에 등록된 별칭만 씀 (미래 정보 차단)
 
 ### GET `/admin/aliases` · DELETE `/admin/aliases/{id}` (부산시만)
@@ -146,7 +149,6 @@ A3 장소 상세
 
 ### POST `/admin/run` (부산시만)
 - 06시를 기다리지 않고 오늘 판정을 지금 실행. 응답: `GET /admin/dashboard`와 같은 형식
-- 판정 작업이 이미 돌고 있으면 409 (재현 포함)
 
 ## 4. 공지 (A-13, C-05)
 
