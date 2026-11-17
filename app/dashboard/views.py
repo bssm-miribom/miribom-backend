@@ -184,7 +184,6 @@ def place_detail(s: Session, row: DailyResult, place: Place) -> dict:
             "actual_visitors": [{"date": str(v.date), "visitors": v.visitors, "source": v.source, "org": v.org}
                                 for v in visits],
             "bottleneck": bottleneck_out(place),
-            "weather_source": (p or {}).get("날씨 출처"),
             "checklist": ({"id": cl.id, "done": sum(i["done"] for i in cl.items), "total": len(cl.items)}
                           if cl else None)}
 
