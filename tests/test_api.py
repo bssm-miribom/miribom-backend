@@ -15,7 +15,7 @@ def test_dashboard_and_detail(client, city, judged):
     for k in ("intent_posts", "intent_ratio", "missing", "response_level", "d1"):
         assert k in row
     d = client.get("/api/admin/places/bukhang", headers=city).json()
-    assert d["bottleneck"]["limit_visitors"] == 66667
+    assert d["bottleneck"]["limit_visitors"] == 111111  # 5*600/(0.09*0.3), peak_share 실측
     assert {"intent", "missing", "checklist", "actual_visitors", "trend"} <= set(d)
     assert client.get("/api/admin/dashboard/rising", headers=city).status_code == 200
 
