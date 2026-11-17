@@ -1,0 +1,155 @@
+from datetime import date
+
+from app.places.geo import polygon_area_m2
+
+
+def test_health_and_login(client, city):
+    assert client.get("/api/health").json()["db"] == "ok"
+    assert client.get("/api/auth/me", headers=city).json()["org_type"] == "city"
+    assert client.post("/api/auth/login", json={"username": "busan", "password": "x"}).status_code == 401
+
+
+def test_dashboard_and_detail(client, city, judged):
+    assert judged["meta"]["judge_day"] == "2026-09-20" and judged["meta"]["demo"] is True
+    row = next(p for p in judged["places"] if p["id"] == "bukhang")
+    for k in ("intent_posts", "intent_ratio", "missing", "response_level", "d1"):
+        assert k in row
+    d = client.get("/api/admin/places/bukhang", headers=city).json()
+    assert d["bottleneck"]["limit_visitors"] == 66667
+    assert {"intent", "missing", "checklist", "actual_visitors", "trend"} <= set(d)
+    assert client.get("/api/admin/dashboard/rising", headers=city).status_code == 200
+
+
+def test_runs_recorded(client, city, judged):
+    runs = client.get("/api/admin/runs", headers=city).json()
+    assert runs[0]["status"] == "ok" and runs[0]["trigger"] == "manual" and runs[0]["places"] >= 5
+
+
+def test_run_with_admin_token(client, judged):
+    assert client.post("/api/admin/run", headers={"X-Admin-Token": "nope"}).status_code == 401
+
+
+def test_polygon_area():
+    # 위도 35도에서 가로·세로 약 100m 정사각형 → 약 1만 ㎡
+    dlat = 100 / 111_195
+    dlon = 100 / (111_195 * 0.8192)
+    sq = [[129.0, 35.0], [129.0 + dlon, 35.0], [129.0 + dlon, 35.0 + dlat], [129.0, 35.0 + dlat]]
+    assert abs(polygon_area_m2(sq) - 10_000) < 100
+
+
+def test_bottleneck_and_place_edit(client, city, donggu, judged):
+    poly = [[129.1186, 35.1532], [129.1190, 35.1532], [129.1190, 35.1535], [129.1186, 35.1535]]
+    res = client.put("/api/admin/places/gwangalli/bottleneck", headers=city,
+                     json={"name": "광안리 해변 진입로", "polygon": poly, "peak_share": 0.12, "bottleneck_share": 0.25})
+    assert res.status_code == 200, res.text
+    b = res.json()["bottleneck"]
+    assert 1000 < b["area_m2"] < 1300 and b["limit_visitors"] > 0
+    assert client.put("/api/admin/places/gwangalli/bottleneck", headers=donggu,
+                      json={"name": "x", "area_m2": 10}).status_code == 403
+    assert client.put("/api/admin/places/gwangalli/bottleneck", headers=city, json={"name": "x"}).status_code == 400
+    res = client.patch("/api/admin/places/gwangalli", headers=city, json={"base_rest": 45000, "force_watch": True})
+    assert res.json()["base_rest"] == 45000 and res.json()["force_watch"] is True
+    res = client.post("/api/admin/places", headers=city,
+                      json={"id": "songdo", "name": "송도해수욕장", "district": "서구", "keywords": ["송도해수욕장"]})
+    assert res.status_code == 201
+    assert client.post("/api/admin/places", headers=city,
+                       json={"id": "songdo2", "name": "송도해수욕장"}).status_code == 409
+
+
+def test_alias(client, city):
+    res = client.post("/api/admin/aliases", headers=city, json={"alias": "부캉이", "place_id": "bukhang"})
+    assert res.status_code == 201
+    assert client.post("/api/admin/aliases", headers=city,
+                       json={"alias": "부캉이", "place_id": "bukhang"}).status_code == 409
+    hits = client.get("/api/places/search", params={"q": "부캉"}).json()
+    assert hits[0]["id"] == "bukhang" and hits[0]["matched_alias"] == "부캉이"
+
+
+def test_response_checklist_police(client, city, donggu, police, judged):
+    # 경찰은 요청 받기 전에는 북항을 못 봄
+    assert client.get("/api/admin/places/bukhang", headers=police).status_code == 404
+    res = client.put("/api/admin/places/bukhang/response", headers=city,
+                     json={"judge_day": "2026-09-20", "level": "stage3", "note": "인력 배치",
+                           "request_to": ["donggu", "police_dong"]})
+    assert res.status_code == 200, res.text
+    out = res.json()
+    assert {r["org"] for r in out["requests"]} == {"donggu", "police_dong"}
+    assert all(r["status"] == "no_contact" for r in out["requests"])
+    cl = out["checklist"]
+    assert cl["level"] == "stage3" and cl["done"] == 0
+    assert client.get("/api/admin/places/bukhang", headers=police).status_code == 200
+    res = client.patch(f"/api/admin/checklists/{cl['id']}/items/staff", headers=donggu, json={"done": True})
+    item = next(i for i in res.json()["items"] if i["id"] == "staff")
+    assert item["done"] and item["by"] == "donggu"
+    dash = client.get("/api/admin/dashboard", headers=city).json()
+    assert next(p for p in dash["places"] if p["id"] == "bukhang")["response_level"] == "stage3"
+    assert client.get("/api/admin/places/bukhang", headers=city).json()["checklist"]["done"] == 1
+    assert client.put("/api/admin/places/bukhang/response", headers=city,
+                      json={"judge_day": "2026-09-20", "level": "stage2", "request_to": ["busan"]}).status_code == 400
+
+
+def test_contacts_notifications(client, city):
+    assert client.put("/api/admin/contacts/donggu", headers=city,
+                      json={"channel": "sms", "to": "010-0000-0000"}).status_code == 200
+    assert client.put("/api/admin/contacts/ghost", headers=city,
+                      json={"channel": "sms", "to": "010"}).status_code == 404
+    ns = client.get("/api/admin/notifications", headers=city).json()
+    assert any(n["reason"] == "request" for n in ns)
+    assert "[미리봄 3단계] 북항친수공원" in ns[0]["text"]
+
+
+def test_auto_notify_dedup(client, city, judged):
+    from app.core.db import SessionLocal
+    from app.judge.models import DailyResult
+    from app.response.notify import auto_notify
+    with SessionLocal() as s:
+        row = s.get(DailyResult, 1)
+        # 북항을 3단계로 바꿔 자동 알림을 확인 (가짜 데이터 예측은 1단계)
+        payload = dict(row.payload)
+        payload["장소"] = [{**p, "단계": "3단계"} if p["장소"] == "북항친수공원" else p for p in payload["장소"]]
+        row.payload = payload
+        s.commit()
+        first = auto_notify(s, row)
+        again = auto_notify(s, row)
+    assert first >= 1 and again == 0
+
+
+def test_visitors(client, donggu, city):
+    res = client.post("/api/admin/places/bukhang/visitors", headers=donggu,
+                      json={"date": "2026-09-19", "visitors": 8800, "source": "동구청 집계"})
+    assert res.status_code == 201
+    client.post("/api/admin/places/bukhang/visitors", headers=donggu, json={"date": "2026-09-19", "visitors": 9000})
+    vs = client.get("/api/admin/places/bukhang/visitors", headers=city).json()
+    assert len(vs) == 1 and vs[0]["visitors"] == 9000
+    detail = client.get("/api/admin/places/bukhang", headers=city).json()
+    assert detail["actual_visitors"][0]["visitors"] == 9000
+    assert client.post("/api/admin/places/haeundae/visitors", headers=donggu,
+                       json={"date": "2026-09-19", "visitors": 1}).status_code == 404   # 관할 밖
+    assert client.post("/api/admin/places/bukhang/visitors", headers=donggu,
+                       json={"date": str(date(2099, 1, 1)), "visitors": 1}).status_code == 400
+
+
+def test_notices_and_sms(client, city):
+    res = client.post("/api/admin/notices", headers=city, json={"title": "출입 통제", "body": "…", "place_id": "bukhang"})
+    assert res.status_code == 201
+    assert client.get("/api/notices").json()[0]["title"] == "출입 통제"
+    fc = client.get("/api/places/bukhang/forecast").json()
+    assert fc["notices"] and len(fc["days"]) == 3
+    sms = client.get("/api/admin/notices/sms-draft", params={"place_id": "bukhang"}, headers=city).json()
+    assert sms["text"].startswith("[부산시] 북항친수공원") and len(sms["text"]) <= 90
+
+
+def test_models_and_classify(client, city, donggu):
+    st = client.get("/api/admin/models", headers=city).json()
+    assert st["scale"]["ready"] and "intent" in st and "threads" in st
+    assert client.get("/api/admin/models", headers=donggu).status_code == 403
+    res = client.post("/api/admin/intent/classify", headers=city, json={"texts": ["주말에 부캉이 보러 감"]})
+    assert res.status_code in (200, 503)   # 의도 모델 가중치가 없으면 503
+    assert client.post("/api/admin/intent/classify", headers=city, json={"texts": ["a"] * 21}).status_code == 400
+
+
+def test_replay(client, city, donggu):
+    assert client.post("/api/admin/replay", headers=donggu, json={"judge_day": "2026-09-20"}).status_code == 403
+    res = client.post("/api/admin/replay", headers=city, json={"judge_day": "2026-09-20"})
+    assert res.status_code == 200 and res.json()["meta"]["replay"] is True
+    assert client.post("/api/admin/replay", headers=city, json={"judge_day": "2099-01-01"}).status_code == 400

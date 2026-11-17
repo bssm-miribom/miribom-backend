@@ -11,8 +11,9 @@ from fastapi import APIRouter, Depends, Form, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.db import DeletionRequest, get_session
+from app.core.config import settings
+from app.core.db import get_session
+from app.threads.models import DeletionRequest
 
 router = APIRouter(prefix="/threads", tags=["threads"])
 

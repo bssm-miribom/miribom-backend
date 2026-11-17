@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 from sqlalchemy import text
 
-from app.cache import r
-from app.db import engine
-from app.jobs import scheduler
+from app.core.cache import r
+from app.core.db import engine
+from app.judge.jobs import scheduler
 
 router = APIRouter(tags=["health"])
 

@@ -1,4 +1,6 @@
 """환경변수 설정. 값은 루트 .env에서 읽음 (docker-compose가 넣어줌)"""
+from zoneinfo import ZoneInfo
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +28,14 @@ class Settings(BaseSettings):
     # 시연용 계정 비밀번호 (처음 실행 때 계정 생성)
     seed_password: str = "miribom1234"
 
+    # 경보 알림: dry_run(기록만, 기본) | send(실제 발송, 발송 수단 붙인 뒤)
+    notify_mode: str = "dry_run"
+    # 06시 판정 전에 어제 Threads 글을 모아 가볼래 글 수를 셈 (THREADS_ACCESS_TOKEN·의도 모델 필요)
+    intent_collect: bool = False
+    threads_access_token: str = ""
+    # 의도 분류 시연 API 한 번에 받는 문장 수
+    intent_max_texts: int = 20
+
     # 수동 실행 API를 로그인 없이 부를 때 쓰는 토큰 (비우면 꺼짐)
     admin_token: str = ""
 
@@ -40,3 +50,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+KST = ZoneInfo("Asia/Seoul")

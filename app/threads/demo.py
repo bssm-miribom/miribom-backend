@@ -14,9 +14,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.cache import r
-from app.config import settings
-from app.db import Alias, Place, get_session
+from app.core.cache import r
+from app.core.config import settings
+from app.core.db import get_session
+from app.places.models import Alias, Place
 
 router = APIRouter(prefix="/threads", tags=["threads-demo"], include_in_schema=False)
 

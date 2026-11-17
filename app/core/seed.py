@@ -5,9 +5,11 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from app.auth import hash_password
-from app.config import settings
-from app.db import Account, Place, SessionLocal
+from app.auth.service import hash_password
+from app.core.config import settings
+from app.auth.models import Account
+from app.core.db import SessionLocal
+from app.places.models import Place
 
 log = logging.getLogger("miribom.seed")
 
@@ -23,6 +25,7 @@ PLACE_META = {
 SEED_ACCOUNTS = [
     ("busan", "부산시 재난안전과", "city", None),
     ("donggu", "동구청 안전도시과", "district", "동구"),
+    ("police_dong", "부산동부경찰서", "police", None),   # 조치 요청 받은 장소만 봄 (A-11)
 ]
 
 
@@ -46,12 +49,14 @@ def seed_places(s):
 
 
 def seed_accounts(s):
-    if s.scalars(select(Account).limit(1)).first():
-        return
-    for username, org_name, org_type, district in SEED_ACCOUNTS:
+    """없는 시연용 계정만 넣음 (이미 있는 계정의 비밀번호는 안 바꿈)"""
+    have = set(s.scalars(select(Account.username)))
+    new = [a for a in SEED_ACCOUNTS if a[0] not in have]
+    for username, org_name, org_type, district in new:
         s.add(Account(username=username, password_hash=hash_password(settings.seed_password),
                       org_name=org_name, org_type=org_type, district=district))
-    log.info("시연용 계정 넣음: %s", ", ".join(a[0] for a in SEED_ACCOUNTS))
+    if new:
+        log.info("시연용 계정 넣음: %s", ", ".join(a[0] for a in new))
 
 
 def seed():

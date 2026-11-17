@@ -7,8 +7,8 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from app.config import settings
-from app.db import Alias, Place
+from app.core.config import settings
+from app.places.models import Alias, Place
 
 HOME = Path(settings.miribom_home)
 FIELDS = ["place", "keywords", "lat", "lon", "base_rest", "base_work", "bottleneck_m2", "peak_share",

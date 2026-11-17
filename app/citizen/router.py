@@ -3,11 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import views
-from app.db import Alias, Place, get_session
-from app.routers.admin import active_notices
+from app.dashboard import views
+from app.core.db import get_session
+from app.places.models import Alias, Place
+from app.notices.router import active_notices
 
-router = APIRouter(tags=["public"])
+router = APIRouter(tags=["시민"])
 
 
 @router.get("/places/search")
@@ -42,8 +43,3 @@ def forecast(place_id: str, s: Session = Depends(get_session)):
             "place": {"id": p.id, "name": p.name, "district": p.district},
             "days": days, "least_crowded": views.least_crowded(days),
             "notices": active_notices(s, p.id), "disclaimer": views.DISCLAIMER}
-
-
-@router.get("/notices")
-def notices(s: Session = Depends(get_session)):
-    return active_notices(s)

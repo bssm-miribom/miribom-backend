@@ -10,8 +10,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.db import Account, Place, get_session
+from app.core.config import settings
+from app.auth.models import Account
+from app.core.db import get_session
+from app.places.models import Place
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -64,7 +66,11 @@ def city_or_token(cred: HTTPAuthorizationCredentials | None = Depends(bearer), x
     return city_account(current_account(cred, s)).username
 
 
+ORG_TYPES = ("city", "district", "facility", "police")
+
+
 def can_see(acc: Account, place: Place) -> bool:
+    """city: 전체 · district: 관할 구 · facility·police: place_ids (경찰은 조치 요청 받은 장소가 여기 더해짐)"""
     if acc.org_type == "city":
         return True
     if acc.org_type == "district":
