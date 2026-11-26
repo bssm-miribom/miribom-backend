@@ -4,6 +4,7 @@
 - v0.2(`miribom-backend/docs/API.md`)에서 바뀐 점: 기능명세 P2·P3 API 추가(🆕), AI 연동 API 추가, 현재 코드와 차이 표(11장)
 - 상태 표시: ✅ 구현됨 · 🆕 이번(11.17)에 새로 구현함 · 🔧 이번에 고침
 - 2026-11-17 전부 구현, pytest 14개 통과 (SQLite·가짜 Redis·가짜 데이터)
+- 2026-11-26 시민 좌표·시간대별 혼잡 추가 (8·12장), pytest 16개 통과
 - 주소 `http(s)://<서버>/api` · Swagger `/docs` · JSON, snake_case, 날짜 `YYYY-MM-DD`, 시각 ISO 8601(+09:00)
 - 인증: 관리자 API는 `Authorization: Bearer <토큰>` (12시간). 시민 API는 로그인 없음
 - 오류: `{"detail": "메시지"}` · 400 입력 · 401 로그인 · 403 권한 · 404 없음 · 409 중복/실행 중 · 500 서버 · 503 설정 없음
@@ -233,20 +234,71 @@
 
 ## 8. 시민 (C-01~C-05) — 로그인 없음
 
-### ✅ GET `/places/search?q=`
+### 🔧 GET `/places/search?q=&lat=&lon=`
 ```json
-[{"id": "bukhang", "name": "북항친수공원", "district": "동구", "matched_alias": "부캉이",
+[{"id": "bukhang", "name": "북항친수공원", "district": "동구", "lat": 35.115, "lon": 129.045,
+  "distance_m": 312, "matched_alias": "부캉이",
   "tomorrow": {"date": "2026-09-21", "crowd": "very_busy", "label": "매우 붐빔"}}]
 ```
-- 이름·별칭 부분 일치. `q` 비면 전체 가나다순. 없으면 `[]`
+- 이름·별칭 부분 일치. `q` 비면 전체. 없으면 `[]`
+- 🆕 `lat`·`lon`: 장소 좌표(WGS84). 없으면 `null`
+- 🆕 `lat`·`lon` 쿼리(내 위치)를 둘 다 주면 `distance_m`(직선 거리, m)을 붙이고 **가까운 순** 정렬, 좌표 없는 장소는 맨 뒤. 안 주면 `distance_m: null`, 가나다순
+- 위치를 서버에 보내기 싫으면 쿼리 없이 받아서 프론트에서 `lat`·`lon`으로 정렬해도 됨 (서버는 위치를 저장 안 함)
 
-### ✅ GET `/places/{id}/forecast`
+### 🔧 GET `/places/{id}/forecast`
 ```json
-{"meta": {JudgeMeta}, "place": {"id","name","district"},
+{"meta": {JudgeMeta}, "place": {"id","name","district","lat","lon"},
  "days": [{"date","crowd","label"} ×3], "least_crowded": "2026-09-23",
  "notices": [], "disclaimer": "예측에 기반한 추정치이며 실제와 다를 수 있음 · 매일 07시 갱신"}
 ```
 - 단계·급증 배수·의도 글 수는 안 내보냄. 재현 결과 안 씀. 3일 다 같으면 `least_crowded: null`
+- 🆕 `place`에 `lat`·`lon` 추가
+
+### 🆕 GET `/places/{id}/forecast/timeslots`
+```json
+{"meta": {JudgeMeta}, "place": {"id","name","district","lat","lon"}, "available": true,
+ "days": [{"date": "2026-09-21", "day_type": "rest",
+           "slots": [{"slot": "morning", "label": "오전", "start": "09:00", "end": "12:00",
+                      "share": 0.174, "crowd": "busy", "crowd_label": "붐빔"},
+                     {"slot": "lunch", "label": "점심", "start": "12:00", "end": "14:00", "share": 0.147, "crowd": "very_busy", "crowd_label": "매우 붐빔"},
+                     {"slot": "afternoon", "label": "오후", "start": "14:00", "end": "18:00", "share": 0.314, "crowd": "very_busy", "crowd_label": "매우 붐빔"},
+                     {"slot": "evening", "label": "저녁", "start": "18:00", "end": "22:00", "share": 0.224, "crowd": "very_busy", "crowd_label": "매우 붐빔"}],
+           "least_crowded_slot": "morning"} ×3],
+ "method": {"source": "공공데이터포털 3057229 부산교통공사 도시철도 역별 시간대별 승하차 (하차)",
+            "period": ["2024-01-01", "2026-09-30"], "stations": ["중앙", "부산역", "초량"],
+            "note": "도시철도 하차 실측 비율로 나눈 추정치. 역 하차에는 통근·환승 이용객도 섞임"},
+ "disclaimer": "…"}
+```
+- 시간대 4개 고정: 오전 09–12 · 점심 12–14 · 오후 14–18 · 저녁 18–22
+- `day_type`: `rest`(주말·공휴일, `holidays` 패키지 KR) / `work`. 비율표를 이걸로 고름
+- `share`: 하루 방문객 중 그 시간대 도착 비중 (22–09시는 빠져서 4개 합 < 1). 막대 높이용
+- `crowd`: 날짜별 `crowd`와 같은 4단계. `least_crowded_slot`: 가장 덜 붐비는 시간대, 다 같으면 `null`
+- `available: false`: 비율표가 없는 장소(새로 추가한 장소 등) → `days: []`. 판정 결과가 없을 때도 `days: []`
+- 방문객 수(명)는 시민 API 원칙대로 안 내보냄
+
+#### 시간대 혼잡 계산 (근거)
+1. 장소별 가까운 역(`miribom_ai.alert.peak_share.STATIONS`, `places.csv` peak_share와 같은 대응) 하차 인원을 날짜·시간별로 합침
+2. 날짜마다 하루 합으로 나눠 시간별 비율 → 휴일·평일별 **시간별 중앙값** → 합 1로 다시 나눔
+3. `peak_ratio` = 그 시간대 가장 붐빈 1시간 ÷ 09–22시 중 가장 붐빈 1시간 (07–09시 출근 하차는 기준에서 뺌)
+4. 시간대 밀집도 = 그날 예측 밀집도(중앙값·상단) × `peak_ratio` → 날짜별과 같은 기준(1㎡당 5명)으로 4단계
+   - 그래서 가장 붐비는 시간대 = 날짜별 혼잡과 같고, 나머지는 그보다 같거나 낮음
+- 표 다시 만들기: `python3 scripts/build_time_profile.py` → `app/citizen/time_profile.json` (원본 CSV는 커밋 안 함)
+- 한계 [팀 확인]: 역 하차 ≠ 장소 방문 (북항은 부산역 이용객, 평일 09시대는 통근 섞임). 흰여울은 역이 없어 남포역 대리. 도착 시각 기준이라 머무는 시간 미반영. 시간대별 실측 방문객으로 검증 안 함
+
+#### 휴일 비율표 (2024-01~2026-09, share / peak_ratio)
+| 장소 | 역 | 오전 | 점심 | 오후 | 저녁 |
+|---|---|---|---|---|---|
+| 북항친수공원 | 중앙·부산역·초량 | 0.174 / 0.76 | 0.147 / 0.90 | 0.314 / 1.00 | 0.224 / 0.87 |
+| 광안리해수욕장 | 광안·금련산 | 0.133 / 0.55 | 0.149 / 0.76 | 0.374 / 1.00 | 0.257 / 0.88 |
+| 해운대해수욕장 | 해운대·중동 | 0.179 / 0.84 | 0.155 / 0.95 | 0.328 / 1.00 | 0.215 / 0.80 |
+| 감천문화마을 | 토성 | 0.209 / 0.96 | 0.137 / 0.96 | 0.272 / 1.00 | 0.189 / 0.77 |
+| 흰여울문화마을 | 남포(대리) | 0.229 / 0.94 | 0.205 / 1.00 | 0.336 / 0.93 | 0.140 / 0.53 |
+- 평일 값은 `app/citizen/time_profile.json`
+
+#### 장소 좌표 출처
+- 값은 `miribom-ai/places.csv`의 `lat`·`lon` 그대로 (DB `places` 표). 원 출처는 기록이 없음
+- 한국관광공사 TourAPI(KorService2)·부산 명소정보 API로 대조하려 했으나 지금 키가 그 서비스에 활용신청이 안 돼 403 → 대신 OpenStreetMap 좌표와 대조: 북항 552m · 광안리 306m · 감천 209m · 흰여울 124m 차이 (해운대는 OSM 검색 실패). 가까운 곳 정렬에는 충분한 오차
+- [팀 확인] 공식 좌표로 바꾸려면 공공데이터포털에서 TourAPI `KorService2` 활용신청 후 `mapx`·`mapy`로 교체 (관리자 `PATCH /admin/places/{id}` 로 `lat`·`lon` 수정 가능)
 
 ---
 
@@ -327,7 +379,15 @@
 
 - 백엔드 폴더를 기능별로 나눔: `core/ auth/ dashboard/ places/ judge/ response/ notices/ citizen/ ai/ threads/ health/`
 
+## 12. 시민 좌표·시간대 추가 (2026-11-26)
+
+| # | 내용 | 결과 |
+|---|---|---|
+| 1 | 시민 검색·예보 응답에 `lat`·`lon` | 추가. 검색에 `lat`·`lon` 쿼리 주면 `distance_m` + 가까운 순 |
+| 2 | 시간대별 예측 | `GET /places/{id}/forecast/timeslots` 추가 (도시철도 하차 실측 비율) |
+
 ## 팀 확인 필요
+- 시간대 구간(오전 09–12 등)과 역↔장소 대응, 장소 공식 좌표(TourAPI 활용신청)
 - 시민 혼잡 4단계 기준, 알림 발송 수단(문자·카카오)·비용
 - 대응 점검표 기본 항목, 경찰 계정 범위
 - 의도 분류 서버 응답 시간 (CPU 전용 torch)

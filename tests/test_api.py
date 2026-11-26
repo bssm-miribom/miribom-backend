@@ -153,3 +153,31 @@ def test_replay(client, city, donggu):
     res = client.post("/api/admin/replay", headers=city, json={"judge_day": "2026-09-20"})
     assert res.status_code == 200 and res.json()["meta"]["replay"] is True
     assert client.post("/api/admin/replay", headers=city, json={"judge_day": "2099-01-01"}).status_code == 400
+
+
+def test_citizen_coords_and_nearby(client, judged):
+    fc = client.get("/api/places/bukhang/forecast").json()
+    assert fc["place"]["lat"] and fc["place"]["lon"]
+    # 부산역 근처에서 찾으면 북항이 가장 가깝고, 거리순으로 정렬됨
+    hits = client.get("/api/places/search", params={"lat": 35.1152, "lon": 129.0422}).json()
+    assert hits[0]["id"] == "bukhang" and hits[0]["distance_m"] < 1000
+    ds = [h["distance_m"] for h in hits if h["distance_m"] is not None]
+    assert ds == sorted(ds)
+    assert client.get("/api/places/search").json()[0]["distance_m"] is None
+
+
+def test_citizen_timeslots(client, judged):
+    res = client.get("/api/places/bukhang/forecast/timeslots")
+    assert res.status_code == 200, res.text
+    t = res.json()
+    assert t["available"] and t["method"]["stations"] == ["중앙", "부산역", "초량"]
+    day = t["days"][0]
+    assert [x["slot"] for x in day["slots"]] == ["morning", "lunch", "afternoon", "evening"]
+    assert day["day_type"] in ("rest", "work")
+    assert all(0 < x["share"] < 1 for x in day["slots"])
+    # 가장 붐비는 시간대(peak_ratio=1)는 날짜별 혼잡과 같음
+    daily = {d["date"]: d["crowd"] for d in client.get("/api/places/bukhang/forecast").json()["days"]}
+    rank = {"free": 0, "normal": 1, "busy": 2, "very_busy": 3}
+    for d in t["days"]:
+        assert max(rank[x["crowd"]] for x in d["slots"]) == rank[daily[d["date"]]]
+    assert client.get("/api/places/nope/forecast/timeslots").status_code == 404

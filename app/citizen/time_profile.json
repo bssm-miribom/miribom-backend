@@ -1,0 +1,281 @@
+{
+ "source": "공공데이터포털 3057229 부산교통공사 도시철도 역별 시간대별 승하차 (하차)",
+ "period": [
+  "2024-01-01",
+  "2026-09-30"
+ ],
+ "method": "가까운 역 하차 인원의 날짜별 시간 비율 → 휴일·평일별 시간별 중앙값. share=시간대 비율 합, peak_ratio=시간대 최대 1시간 ÷ 09-22시 최대 1시간",
+ "slots": {
+  "morning": {
+   "label": "오전",
+   "start": "09:00",
+   "end": "12:00"
+  },
+  "lunch": {
+   "label": "점심",
+   "start": "12:00",
+   "end": "14:00"
+  },
+  "afternoon": {
+   "label": "오후",
+   "start": "14:00",
+   "end": "18:00"
+  },
+  "evening": {
+   "label": "저녁",
+   "start": "18:00",
+   "end": "22:00"
+  }
+ },
+ "places": {
+  "북항친수공원": {
+   "stations": [
+    "중앙",
+    "부산역",
+    "초량"
+   ],
+   "rest": {
+    "days": 332,
+    "peak_hour": 16,
+    "slots": {
+     "morning": {
+      "share": 0.174,
+      "peak_ratio": 0.755
+     },
+     "lunch": {
+      "share": 0.147,
+      "peak_ratio": 0.904
+     },
+     "afternoon": {
+      "share": 0.314,
+      "peak_ratio": 1.0
+     },
+     "evening": {
+      "share": 0.224,
+      "peak_ratio": 0.873
+     }
+    }
+   },
+   "work": {
+    "days": 672,
+    "peak_hour": 9,
+    "slots": {
+     "morning": {
+      "share": 0.18,
+      "peak_ratio": 1.0
+     },
+     "lunch": {
+      "share": 0.11,
+      "peak_ratio": 0.687
+     },
+     "afternoon": {
+      "share": 0.212,
+      "peak_ratio": 0.738
+     },
+     "evening": {
+      "share": 0.151,
+      "peak_ratio": 0.795
+     }
+    }
+   }
+  },
+  "광안리해수욕장": {
+   "stations": [
+    "광안",
+    "금련산"
+   ],
+   "rest": {
+    "days": 332,
+    "peak_hour": 17,
+    "slots": {
+     "morning": {
+      "share": 0.133,
+      "peak_ratio": 0.547
+     },
+     "lunch": {
+      "share": 0.149,
+      "peak_ratio": 0.76
+     },
+     "afternoon": {
+      "share": 0.374,
+      "peak_ratio": 1.0
+     },
+     "evening": {
+      "share": 0.257,
+      "peak_ratio": 0.875
+     }
+    }
+   },
+   "work": {
+    "days": 672,
+    "peak_hour": 18,
+    "slots": {
+     "morning": {
+      "share": 0.142,
+      "peak_ratio": 0.392
+     },
+     "lunch": {
+      "share": 0.111,
+      "peak_ratio": 0.46
+     },
+     "afternoon": {
+      "share": 0.301,
+      "peak_ratio": 0.757
+     },
+     "evening": {
+      "share": 0.274,
+      "peak_ratio": 1.0
+     }
+    }
+   }
+  },
+  "해운대해수욕장": {
+   "stations": [
+    "해운대",
+    "중동"
+   ],
+   "rest": {
+    "days": 332,
+    "peak_hour": 16,
+    "slots": {
+     "morning": {
+      "share": 0.179,
+      "peak_ratio": 0.839
+     },
+     "lunch": {
+      "share": 0.155,
+      "peak_ratio": 0.952
+     },
+     "afternoon": {
+      "share": 0.328,
+      "peak_ratio": 1.0
+     },
+     "evening": {
+      "share": 0.215,
+      "peak_ratio": 0.796
+     }
+    }
+   },
+   "work": {
+    "days": 672,
+    "peak_hour": 18,
+    "slots": {
+     "morning": {
+      "share": 0.156,
+      "peak_ratio": 0.56
+     },
+     "lunch": {
+      "share": 0.117,
+      "peak_ratio": 0.617
+     },
+     "afternoon": {
+      "share": 0.294,
+      "peak_ratio": 0.898
+     },
+     "evening": {
+      "share": 0.243,
+      "peak_ratio": 1.0
+     }
+    }
+   }
+  },
+  "감천문화마을": {
+   "stations": [
+    "토성"
+   ],
+   "rest": {
+    "days": 332,
+    "peak_hour": 14,
+    "slots": {
+     "morning": {
+      "share": 0.209,
+      "peak_ratio": 0.959
+     },
+     "lunch": {
+      "share": 0.137,
+      "peak_ratio": 0.964
+     },
+     "afternoon": {
+      "share": 0.272,
+      "peak_ratio": 1.0
+     },
+     "evening": {
+      "share": 0.189,
+      "peak_ratio": 0.771
+     }
+    }
+   },
+   "work": {
+    "days": 672,
+    "peak_hour": 9,
+    "slots": {
+     "morning": {
+      "share": 0.241,
+      "peak_ratio": 1.0
+     },
+     "lunch": {
+      "share": 0.136,
+      "peak_ratio": 0.847
+     },
+     "afternoon": {
+      "share": 0.192,
+      "peak_ratio": 0.65
+     },
+     "evening": {
+      "share": 0.126,
+      "peak_ratio": 0.578
+     }
+    }
+   }
+  },
+  "흰여울문화마을": {
+   "stations": [
+    "남포"
+   ],
+   "rest": {
+    "days": 332,
+    "peak_hour": 13,
+    "slots": {
+     "morning": {
+      "share": 0.229,
+      "peak_ratio": 0.943
+     },
+     "lunch": {
+      "share": 0.205,
+      "peak_ratio": 1.0
+     },
+     "afternoon": {
+      "share": 0.336,
+      "peak_ratio": 0.926
+     },
+     "evening": {
+      "share": 0.14,
+      "peak_ratio": 0.525
+     }
+    }
+   },
+   "work": {
+    "days": 672,
+    "peak_hour": 11,
+    "slots": {
+     "morning": {
+      "share": 0.217,
+      "peak_ratio": 1.0
+     },
+     "lunch": {
+      "share": 0.141,
+      "peak_ratio": 0.914
+     },
+     "afternoon": {
+      "share": 0.272,
+      "peak_ratio": 0.923
+     },
+     "evening": {
+      "share": 0.163,
+      "peak_ratio": 0.956
+     }
+    }
+   }
+  }
+ }
+}
