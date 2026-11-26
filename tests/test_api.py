@@ -181,3 +181,15 @@ def test_citizen_timeslots(client, judged):
     for d in t["days"]:
         assert max(rank[x["crowd"]] for x in d["slots"]) == rank[daily[d["date"]]]
     assert client.get("/api/places/nope/forecast/timeslots").status_code == 404
+
+
+def test_citizen_replay_day(client, city):
+    # 재현 결과가 없는 날짜는 404 (가짜 값을 만들지 않음)
+    assert client.get("/api/places/search", params={"replay_day": "2026-09-19"}).status_code == 404
+    assert client.post("/api/admin/replay", headers=city, json={"judge_day": "2026-09-19"}).status_code == 200
+    hits = client.get("/api/places/search", params={"replay_day": "2026-09-19"}).json()
+    assert hits and hits[0]["tomorrow"]["date"] == "2026-09-20"
+    fc = client.get("/api/places/bukhang/forecast", params={"replay_day": "2026-09-19"}).json()
+    assert fc["meta"]["replay"] is True and fc["meta"]["judge_day"] == "2026-09-19" and fc["notices"] == []
+    ts = client.get("/api/places/bukhang/forecast/timeslots", params={"replay_day": "2026-09-19"}).json()
+    assert ts["meta"]["replay"] is True

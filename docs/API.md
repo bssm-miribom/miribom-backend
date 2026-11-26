@@ -233,6 +233,8 @@
 
 ## 8. 시민 (C-01~C-05) — 로그인 없음
 
+> 🆕 시민 API 3개 모두 `replay_day=YYYY-MM-DD`를 받음. 주면 그날 07시까지 자료로 다시 돌린 재현 결과(`/admin/replay`로 미리 만든 것)를 씀. 결과가 없으면 404, `meta.replay=true`, 공지는 빈 목록. 시연용 과거 날짜 보기(예: 2026-09-21 부캉이)
+
 ### 🔧 GET `/places/search?q=&lat=&lon=`
 ```json
 [{"id": "bukhang", "name": "북항친수공원", "district": "동구", "lat": 35.115, "lon": 129.045,
