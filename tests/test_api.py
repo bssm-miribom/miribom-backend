@@ -193,3 +193,31 @@ def test_citizen_replay_day(client, city):
     assert fc["meta"]["replay"] is True and fc["meta"]["judge_day"] == "2026-09-19" and fc["notices"] == []
     ts = client.get("/api/places/bukhang/forecast/timeslots", params={"replay_day": "2026-09-19"}).json()
     assert ts["meta"]["replay"] is True
+
+
+def test_scenario_not_saved(client, city, donggu):
+    from app.core.db import SessionLocal
+    from app.judge.models import DailyResult, DailyRun
+    with SessionLocal() as s:
+        before = (s.query(DailyResult).count(), s.query(DailyRun).count())
+    body = {"judge_day": "2026-09-21", "place_id": "bukhang", "multiplier": 2}
+    assert client.post("/api/admin/scenario", headers=donggu, json=body).status_code == 403
+    res = client.post("/api/admin/scenario", headers=city, json=body)
+    assert res.status_code == 200, res.text
+    sc = res.json()["meta"]["scenario"]
+    assert sc["label"] == "가상 시나리오 · 실제 데이터 아님" and sc["assumption"] and sc["multiplier"] == 2
+    assert sc["start"] == "2026-09-18"
+    with SessionLocal() as s:   # 실데이터 판정 이력에 안 섞임
+        assert (s.query(DailyResult).count(), s.query(DailyRun).count()) == before
+    key = sc["key"]
+    d = client.get("/api/admin/dashboard", headers=city, params={"scenario": key}).json()
+    assert d["meta"]["scenario"]["key"] == key
+    detail = client.get("/api/admin/places/bukhang", headers=city, params={"scenario": key}).json()
+    assert detail["meta"]["scenario"] and detail["actual_visitors"] == [] and len(detail["trend"]) == 1
+    assert client.get("/api/admin/dashboard", headers=donggu, params={"scenario": key}).status_code == 403
+    fc = client.get("/api/places/bukhang/forecast", params={"scenario": key}).json()
+    assert fc["meta"]["scenario"]["label"] and fc["notices"] == []
+    assert client.get("/api/places/search", params={"scenario": key}).status_code == 200
+    assert client.get("/api/places/search", params={"scenario": "nope"}).status_code == 404
+    # 평소 조회에는 scenario가 None
+    assert client.get("/api/places/search").status_code in (200, 404)

@@ -164,6 +164,17 @@
 - 실행 중이면 409 `"판정 작업이 이미 실행 중임"` (Redis 잠금 30분)
 - 매일 06:00 KST 자동 실행 (APScheduler, 서버 안). 07시가 지나도 없으면 `stale`
 
+### 🆕 POST `/admin/scenario` (부산시) — 가상 시나리오 · 실제 데이터 아님
+위험 단계 시연용. 실데이터에는 3단계가 한 번도 없어서 만듦. **DB(daily_results·daily_runs)에 안 남기고 Redis에만 60일 보관**, 알림도 안 보냄
+```json
+{"judge_day": "2026-09-21", "place_id": "bukhang", "multiplier": 1, "start": null, "force": false}
+```
+- 그 장소만 검색 지수를 `start`(기본 판정일 3일 전)부터 `multiplier`배(1~10)로 키움
+- 예측은 **'검색이 늘어난 만큼 방문도 늘어난다' 가정**: 최악 시나리오 값을 예측 중앙값으로 씀 (실측 모델은 검색에 거의 반응 안 함)
+- 응답은 대시보드 모양. `meta.scenario = {key, label, place_id, place, multiplier, start, assumption}` → 화면은 label·assumption을 꼭 표시
+- `meta.scenario.key`를 `?scenario=`로 넘기면 `/admin/dashboard`, `/admin/dashboard/rising`, `/admin/places/{id}`(부산시만), 시민 API 3개에서 같은 결과를 봄. 이때 실측 회신·점검표·공지·7일 추이는 실데이터와 안 섞음
+- 라즈베리파이 실측(판정일 9/21, 북항): ×1 → 3단계 (9/24 밀집도 8.6명/㎡), ×2 → 17.2, ×3 → 25.8
+
 ### 🆕 GET `/admin/runs`
 ```json
 [{"id": 41, "judge_day": "2026-09-20", "replay": false, "demo": false,

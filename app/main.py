@@ -20,6 +20,7 @@ from app.judge.router import router as judge
 from app.notices.router import router as notices
 from app.places.router import router as places
 from app.response.router import router as response
+from app.scenario.router import router as scenario
 from app.threads.demo import router as threads_demo
 from app.threads.router import router as threads
 
@@ -40,7 +41,7 @@ app = FastAPI(title="미리봄 API", version="0.3.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_list, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
-for r in (health, auth, dashboard, places, judge, response, notices, citizen, ai, threads):
+for r in (health, auth, dashboard, places, judge, scenario, response, notices, citizen, ai, threads):
     app.include_router(r, prefix="/api")
 
 # Threads 로그인·검색 화면 (Meta 심사 녹화용). 콜백 주소가 /threads/callback이라 /api를 붙이지 않음
