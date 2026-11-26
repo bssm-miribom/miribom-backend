@@ -157,7 +157,7 @@ def test_replay(client, city, donggu):
 
 def test_citizen_coords_and_nearby(client, judged):
     fc = client.get("/api/places/bukhang/forecast").json()
-    assert fc["place"]["lat"] and fc["place"]["lon"]
+    assert (fc["place"]["lat"], fc["place"]["lon"]) == (35.1144199, 129.0466221)   # TourAPI 좌표
     # 부산역 근처에서 찾으면 북항이 가장 가깝고, 거리순으로 정렬됨
     hits = client.get("/api/places/search", params={"lat": 35.1152, "lon": 129.0422}).json()
     assert hits[0]["id"] == "bukhang" and hits[0]["distance_m"] < 1000
