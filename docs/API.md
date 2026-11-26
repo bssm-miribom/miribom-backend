@@ -107,7 +107,6 @@
  "actual_visitors": [{"date": "2026-09-19", "visitors": 8800, "source": "동구청 회신"}],
  "forecasts": [{Forecast} ×3],
  "bottleneck": {"name", "area_m2": 600, "limit_per_m2": 5.0, "limit_visitors": 66667, "estimated": true},
- "weather_source": "Open-Meteo",
  "checklist": {ChecklistSummary}}
 ```
 - `trend`: 최근 7일. 날짜는 자료 기준일(D-1)
@@ -272,7 +271,6 @@
 | `장소[].예측.{h}.하위10·중앙값·상위90·최악·날짜` | `Forecast.low·mid·high·worst·date` |
 | `장소[].밀집도.{날짜}.중앙값·상위90·최악` | `Forecast.density_mid·density_high·density_worst` |
 | `장소[].최악 시나리오` | `worst_case` |
-| `장소[].날씨 출처` | `weather_source` |
 | 🆕 `장소[].의도.어제 글 수`, `평소 대비` | `intent_posts`, `intent_ratio` |
 | 🆕 `장소[].빠진 값` | `missing` |
 
