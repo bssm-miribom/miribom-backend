@@ -34,8 +34,15 @@ def find_result(s: Session, judge_day: date | None = None, replay: bool = False)
     return s.scalars(q.order_by(DailyResult.judge_day.desc(), DailyResult.created_at.desc()).limit(1)).first()
 
 
+def is_scenario(row: DailyResult) -> bool:
+    return getattr(row, "scenario", None) is not None
+
+
 def results_between(s: Session, row: DailyResult, days: int) -> list[DailyResult]:
-    """row 판정일 기준 최근 days일의 같은 모드(운영·재현, demo) 결과. 날짜마다 가장 최근 것"""
+    """row 판정일 기준 최근 days일의 같은 모드(운영·재현, demo) 결과. 날짜마다 가장 최근 것.
+    가상 시나리오는 실데이터 결과와 섞지 않게 그 하루만"""
+    if is_scenario(row):
+        return [row]
     start = row.judge_day - timedelta(days=days - 1)
     rows = s.scalars(select(DailyResult).where(DailyResult.replay == row.replay, DailyResult.demo == row.demo,
                                                 DailyResult.judge_day >= start, DailyResult.judge_day <= row.judge_day)
@@ -48,8 +55,10 @@ def meta(row: DailyResult) -> dict:
     # 오늘 판정은 06시에 돌고 몇십 초~몇 분 걸리므로, 07시가 지났는데도 오늘 결과가 없을 때만 '지연'으로 봄
     due = now.replace(hour=settings.daily_hour, minute=settings.daily_minute, second=0, microsecond=0) + timedelta(hours=1)
     expected = now.date() if now >= due else now.date() - timedelta(days=1)
+    sc = getattr(row, "scenario", None)   # 가상 시나리오(app.scenario)면 라벨·가정이 들어감. 아니면 None
     return {"judge_day": str(row.judge_day), "generated_at": row.payload.get("생성 시각"), "demo": row.demo,
-            "replay": row.replay, "stale": (not row.replay and not row.demo and row.judge_day < expected)}
+            "replay": row.replay, "stale": (not row.replay and not row.demo and row.judge_day < expected),
+            "scenario": sc}
 
 
 def by_name(payload: dict) -> dict[str, dict]:
@@ -115,9 +124,10 @@ def aliases_after(s: Session, row: DailyResult) -> dict[str, list[str]]:
 def _rows(s: Session, row: DailyResult, acc: Account) -> list[dict]:
     """계정 관할 안의 급상승 후보 행 (normal 제외). 단계 높은 순 → 급증 배수 높은 순"""
     now = by_name(row.payload)
-    prev_row = s.scalars(select(DailyResult).where(DailyResult.replay == row.replay, DailyResult.demo == row.demo,
-                                                    DailyResult.judge_day == row.judge_day - timedelta(days=1))
-                         .order_by(DailyResult.created_at.desc()).limit(1)).first()
+    prev_row = None if is_scenario(row) else s.scalars(
+        select(DailyResult).where(DailyResult.replay == row.replay, DailyResult.demo == row.demo,
+                                  DailyResult.judge_day == row.judge_day - timedelta(days=1))
+        .order_by(DailyResult.created_at.desc()).limit(1)).first()
     prev = by_name(prev_row.payload) if prev_row else {}
     new_alias = aliases_after(s, row)
     levels = {} if row.replay else response_levels(s, row.judge_day)
@@ -165,11 +175,11 @@ def place_detail(s: Session, row: DailyResult, place: Place) -> dict:
         trend.append({"date": str(x.judge_day - timedelta(days=1)),   # 배수·글 수는 D-1 자료
                       "surge_ratio": (px.get("급증") or {}).get("오늘 배수"), "intent_posts": intent_of(px)["posts"]})
     # 실측 회신은 판정일 전날까지만 보여줌 (재현 화면에 미래 정보가 섞이지 않게)
-    visits = s.scalars(select(VisitorReport).where(VisitorReport.place_id == place.id,
+    visits = [] if is_scenario(row) else s.scalars(select(VisitorReport).where(VisitorReport.place_id == place.id,
                                                    VisitorReport.date < row.judge_day,
                                                    VisitorReport.date >= row.judge_day - timedelta(days=30))
                        .order_by(VisitorReport.date)).all()
-    cl = s.scalars(select(Checklist).where(Checklist.place_id == place.id, Checklist.judge_day == row.judge_day)
+    cl = None if is_scenario(row) else s.scalars(select(Checklist).where(Checklist.place_id == place.id, Checklist.judge_day == row.judge_day)
                    .order_by(Checklist.created_at.desc())).first()
     surge = (p or {}).get("급증") or {}
     return {"meta": meta(row),
@@ -234,8 +244,11 @@ def least_crowded(days: list[dict]) -> str | None:
     return min(ok, key=lambda d: rank[d["crowd"]])["date"]
 
 
-def result_or_404(s: Session, judge_day: date | None, replay: bool) -> DailyResult:
+def result_or_404(s: Session, judge_day: date | None, replay: bool, scenario: str | None = None) -> DailyResult:
     from fastapi import HTTPException
+    if scenario:
+        from app.scenario.service import load
+        return load(scenario)
     row = find_result(s, judge_day, replay)
     if not row:
         if replay:
